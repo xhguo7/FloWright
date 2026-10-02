@@ -1,0 +1,9 @@
+name: flowright
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -r harness/requirements.txt

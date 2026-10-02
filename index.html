@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloWright: It Takes Workflows to Evolve Better Workflows</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #DCE7F5 0%, #5E8AC0 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Reading progress bar, scaled rather than resized so it stays on the compositor */
+        .scroll-progress {
+            position: fixed; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #A9C2E3 0%, #5E8AC0 55%, #4672AA 100%);
+            transform: scaleX(0); transform-origin: 0 50%;
+            z-index: 1000; pointer-events: none; will-change: transform;
+        }
+
+        /* Back to top, hidden until the reader is well down the page */
+        .back-to-top {
+            position: fixed; bottom: 32px; right: 32px;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            background: #5E8AC0; color: white; border: none;
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 6px 18px rgba(70, 114, 170, 0.35);
+            opacity: 0; visibility: hidden; transform: translateY(14px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s, background 0.3s;
+            z-index: 999;
+        }
+        .back-to-top.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+        .back-to-top:hover { background: #4672AA; transform: translateY(-4px); box-shadow: 0 10px 24px rgba(70, 114, 170, 0.45); }
+        .back-to-top svg { width: 24px; height: 24px; }
+
+        @media (max-width: 768px) {
+            .back-to-top { bottom: 20px; right: 20px; width: 44px; height: 44px; }
+            .back-to-top svg { width: 20px; height: 20px; }
+        }
+
+        /* Animated background shapes */
+        .bg-shapes {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; z-index: 0; pointer-events: none;
+        }
+        .shape { position: absolute; opacity: 0.6; animation: float 20s infinite ease-in-out; will-change: transform; }
+        .shape.circle { border-radius: 50%; background: rgba(255, 255, 255, 0.5); }
+        .shape.square { background: rgba(255, 255, 255, 0.5); border-radius: 15px; }
+        .shape.triangle {
+            width: 0; height: 0; background: transparent;
+            border-left: 50px solid transparent; border-right: 50px solid transparent;
+            border-bottom: 86px solid rgba(255, 255, 255, 0.5);
+        }
+        .shape:nth-child(1)  { width: 80px;  height: 80px;  top: 5%;  left: 5%;  animation-delay: 0s;   animation-duration: 10s; }
+        .shape:nth-child(2)  { width: 120px; height: 120px; top: 15%; left: 85%; animation-delay: 2s;   animation-duration: 13s; }
+        .shape:nth-child(3)  { width: 60px;  height: 60px;  top: 25%; left: 92%; animation-delay: 4s;   animation-duration: 11s; }
+        .shape:nth-child(4)  { width: 100px; height: 100px; top: 40%; left: 3%;  animation-delay: 1s;   animation-duration: 14s; }
+        .shape:nth-child(5)  { width: 90px;  height: 90px;  top: 55%; left: 88%; animation-delay: 3s;   animation-duration: 11s; }
+        .shape:nth-child(6)  { width: 70px;  height: 70px;  top: 70%; left: 8%;  animation-delay: 5s;   animation-duration: 12s; }
+        .shape:nth-child(7)  { width: 85px;  height: 85px;  top: 80%; left: 90%; animation-delay: 1.5s; animation-duration: 13s; }
+        .shape:nth-child(8)  { width: 95px;  height: 95px;  top: 50%; left: 50%; animation-delay: 4.5s; animation-duration: 11s; }
+        .shape:nth-child(9)  { width: 75px;  height: 75px;  top: 90%; left: 15%; animation-delay: 2.5s; animation-duration: 12s; }
+        .shape:nth-child(10) { width: 65px;  height: 65px;  top: 35%; left: 78%; animation-delay: 3.5s; animation-duration: 10s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25%      { transform: translate(15px, -30px) rotate(8deg); }
+            50%      { transform: translate(-15px, -60px) rotate(-8deg); }
+            75%      { transform: translate(10px, -30px) rotate(5deg); }
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+        header {
+            background: white; border-radius: 15px; padding: 40px; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 { font-size: 2.5em; color: #4672AA; margin-bottom: 20px; text-align: center; line-height: 1.3; }
+        .highlight-name { color: #5E8AC0; font-weight: bold; }
+
+        .venue { text-align: center; color: #5E8AC0; font-weight: bold; letter-spacing: 0.08em; margin-bottom: 6px; }
+        .authors { text-align: center; margin: 20px 0; font-size: 1.1em; }
+        .author { display: inline-block; margin: 0 12px; color: #555; text-decoration: none; transition: color 0.3s; font-weight: bold; }
+        .author:hover { color: #4672AA; }
+        .affiliations { text-align: center; margin: 8px 0 0 0; font-size: 0.95em; color: #777; font-style: italic; }
+
+        .quick-links { display: flex; justify-content: center; gap: 20px; margin-top: 30px; flex-wrap: wrap; }
+        .link-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 14px 36px; min-width: 200px;
+            background: rgba(201, 217, 238, 0.4); color: #4672AA; text-decoration: none;
+            border-radius: 25px; transition: all 0.3s; font-weight: 500;
+            box-shadow: 0 4px 15px rgba(94, 138, 192, 0.2); border: none;
+        }
+        .link-btn:hover {
+            transform: translateY(-3px); box-shadow: 0 6px 20px rgba(94, 138, 192, 0.4);
+            background: rgba(94, 138, 192, 0.5); color: white;
+        }
+        .link-btn svg { width: 20px; height: 20px; }
+
+        section {
+            background: white; border-radius: 15px; padding: 40px; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: fadeInUp 0.8s ease-out;
+        }
+
+        h2 {
+            color: #4672AA; margin-bottom: 20px; padding-bottom: 10px;
+            border-bottom: 3px solid #5E8AC0; font-size: 2em;
+            display: flex; align-items: center; justify-content: flex-start;
+        }
+        h3 { color: #34495e; margin: 25px 0 15px 0; font-size: 1.4em; }
+
+        .abstract { font-size: 1.05em; text-align: justify; line-height: 1.8; color: #555; }
+
+        figure { margin: 25px 0; text-align: center; }
+        figure img {
+            max-width: 100%; height: auto; border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12); background: white;
+        }
+        figcaption { margin-top: 12px; font-size: 0.92em; color: #666; font-style: italic; text-align: center; }
+
+        /* Figures that are half-width in the paper sit beside their text, both centered */
+        .figure-side {
+            display: flex; align-items: center; justify-content: center;
+            gap: 34px; margin: 30px 0; flex-wrap: wrap;
+        }
+        .figure-side > figure { flex: 1 1 380px; max-width: 50%; margin: 0; }
+        .figure-side > .side-text { flex: 1 1 320px; max-width: 44%; color: #555; }
+        .figure-side > .side-text h4 { color: #4672AA; margin-bottom: 10px; font-size: 1.15em; }
+        .figure-side > .side-text p { margin-bottom: 10px; }
+        .figure-side.reverse > figure { order: 2; }
+        .figure-side.reverse > .side-text { order: 1; }
+
+        @media (max-width: 860px) {
+            .figure-side > figure,
+            .figure-side > .side-text { max-width: 100%; flex-basis: 100%; }
+            .figure-side.reverse > figure,
+            .figure-side.reverse > .side-text { order: 0; }
+        }
+
+        /* Text block beside a tabbed figure: 1:3 for wide figures, 2:3 for half-width ones */
+        .figure-split { display: grid; grid-template-columns: 1fr 3fr; gap: 30px; align-items: center; margin: 20px 0; }
+        .figure-split.half { grid-template-columns: 2fr 3fr; }
+        .figure-split > figure { margin: 0; }
+        .figure-split > .side-text { color: #555; }
+        .figure-split > .side-text h4 { color: #4672AA; margin-bottom: 10px; font-size: 1.15em; }
+        .figure-split > .side-text p { margin-bottom: 10px; }
+        @media (max-width: 860px) {
+            .figure-split, .figure-split.half { grid-template-columns: 1fr; }
+        }
+
+        .motivation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 25px; }
+        .motivation-card {
+            background: rgba(94, 138, 192, 0.12); padding: 25px; border-radius: 10px;
+            border-left: 5px solid #5E8AC0; transition: transform 0.3s;
+        }
+        .motivation-card:hover { transform: translateX(10px); }
+        .motivation-card h4 { color: #4672AA; margin-bottom: 10px; font-size: 1.2em; }
+
+        .feature-box {
+            background: linear-gradient(135deg, #C9D9EE 0%, #5E8AC0 100%); color: white;
+            padding: 30px; border-radius: 10px; margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(94, 138, 192, 0.3);
+        }
+
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 25px 0; }
+        .stat-item { text-align: center; padding: 20px; background: rgba(94, 138, 192, 0.10); border-radius: 10px; transition: transform 0.3s; }
+        .stat-item:hover { transform: scale(1.05); }
+        .stat-number { font-size: 2.5em; font-weight: bold; color: #4672AA; display: block; }
+        .stat-label { color: #666; margin-top: 5px; font-size: 0.9em; }
+
+        .stage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 25px 0; }
+        .stage-card { padding: 25px; border-radius: 10px; transition: all 0.3s; }
+        .stage-card.stage-i  { background: rgba(201, 217, 238, 0.30); border-left: 5px solid #86A8D6; }
+        .stage-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+        .stage-card h4 { font-size: 1.3em; margin-bottom: 10px; color: #4672AA; }
+
+        .eq {
+            display: block; margin: 12px 0; padding: 12px 16px;
+            background: rgba(94,138,192,0.08); border-radius: 8px;
+            font-family: 'Georgia', serif; font-style: italic; color: #3D6398; text-align: center;
+        }
+
+        /* Workflow topology tabs */
+        .tab-bar { display: flex; gap: 12px; margin: 25px 0 20px 0; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 12px 30px; background: rgba(94, 138, 192, 0.15); color: #4672AA;
+            border: none; border-radius: 25px; cursor: pointer;
+            transition: all 0.3s; font-size: 1em; font-weight: 600;
+        }
+        .tab-btn:hover { background: rgba(94, 138, 192, 0.30); transform: translateY(-2px); }
+        .tab-btn.active { background: #5E8AC0; color: white; box-shadow: 0 4px 12px rgba(94,138,192,0.35); }
+        .tab-panel { animation: fadeInUp 0.4s ease-out; }
+        .hidden { display: none; }
+
+        .code-box { background: #F1F5FB; border-radius: 10px; padding: 20px 25px; margin: 15px 0; }
+        .code-box pre { white-space: pre-wrap; word-break: break-word; font-size: 0.88em; color: #3D6398; font-family: 'Consolas', monospace; }
+
+        .table-container { margin: 25px 0; overflow: hidden; border-radius: 10px; }
+        .table-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+
+        .scrollable-table { overflow-x: auto; max-height: 640px; transition: all 0.3s; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        table.wide { font-size: 0.86em; min-width: 900px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        table.wide th, table.wide td { padding: 8px 10px; }
+        th { background: #5E8AC0; color: white; position: sticky; top: 0; z-index: 10; text-align: center; }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        table.marks td.num { text-align: center; }
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 5; }
+        tr:hover { background: rgba(94, 138, 192, 0.08); }
+        tr:hover .sticky-col { background: #F1F5FB; }
+        .group-row td { text-align: center; background: rgba(94,138,192,0.18); font-weight: bold; color: #4672AA; }
+
+        .row-baseline { background: rgba(241, 245, 251, 0.75); }
+        .row-baseline .sticky-col { background: #F1F5FB; }
+        .row-nft  { background: rgba(254, 249, 195, 0.30); }
+        .row-nft .sticky-col { background: #FEFCE8; }
+        .row-ft   { background: rgba(220, 231, 245, 0.55); }
+        .row-ft .sticky-col { background: #DCE7F5; }
+
+        .up   { color: #16a34a; font-weight: bold; }
+        .down { color: #e08989; font-weight: bold; }
+
+        .insights-box {
+            background: rgba(201, 217, 238, 0.25); padding: 25px; border-radius: 10px;
+            border-left: 5px solid #5E8AC0; margin-top: 20px;
+        }
+        .insights-box ul { list-style: none; padding: 0; margin: 0; }
+        .insights-box li { padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .insights-box li:last-child { border-bottom: none; }
+        .insights-box li strong { color: #4672AA; }
+
+        .resources-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 25px; }
+        .resource-card {
+            background: rgba(94, 138, 192, 0.10); padding: 25px; border-radius: 10px;
+            text-align: center; transition: all 0.3s; text-decoration: none; color: inherit; display: block;
+        }
+        .resource-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(94,138,192,0.25); background: rgba(94, 138, 192, 0.18); }
+        .resource-card h4 { color: #4672AA; margin-bottom: 8px; }
+
+        .citation-box { background: #F1F5FB; border-radius: 10px; padding: 25px; position: relative; margin-top: 20px; }
+        .citation-box pre { white-space: pre-wrap; word-break: break-word; font-size: 0.9em; color: #3D6398; font-family: 'Consolas', monospace; }
+        .copy-btn {
+            position: absolute; top: 15px; right: 15px; padding: 8px 16px;
+            background: #5E8AC0; color: white; border: none; border-radius: 5px;
+            cursor: pointer; transition: all 0.3s; font-size: 0.85em;
+        }
+        .copy-btn:hover { background: #4672AA; }
+
+        footer { text-align: center; padding: 30px; color: white; font-weight: bold; font-size: 0.95em; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp   { from { opacity: 0; transform: translateY(30px); }  to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.7em; }
+            h2 { font-size: 1.5em; }
+            section, header { padding: 25px 20px; }
+            .link-btn { min-width: 150px; padding: 12px 22px; }
+            .stat-number { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <div class="bg-shapes">
+        <div class="shape circle"></div><div class="shape square"></div><div class="shape triangle"></div>
+        <div class="shape circle"></div><div class="shape square"></div><div class="shape circle"></div>
+        <div class="shape triangle"></div><div class="shape square"></div><div class="shape circle"></div>
+        <div class="shape square"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1><span class="highlight-name">FloWright</span>: It Takes Workflows to Evolve Better Workflows</h1>
+            <div class="authors">
+                <a href="https://xhguo7.github.io/" class="author">Xuehang Guo<sup>1</sup></a>
+                <a href="https://hwangcs.github.io/" class="author">Haoyu Wang<sup>2</sup></a>
+                <a href="https://haifeng-home.vercel.app/" class="author">Haifeng Chen<sup>2</sup></a>
+                <a href="https://yangyi-chen.github.io/" class="author">Yangyi Chen<sup>3</sup></a>
+                <a href="https://mikewangwzhl.github.io/" class="author">Zhenhailong Wang<sup>3*</sup></a>
+                <a href="https://eaglew.github.io/" class="author">Qingyun Wang<sup>1*</sup></a>
+            </div>
+            <p class="affiliations">
+                <sup>1</sup>William &amp; Mary &nbsp;&nbsp; <sup>2</sup>NEC Corporation of America &nbsp;&nbsp;
+                <sup>3</sup>University of Illinois Urbana-Champaign &nbsp;&nbsp; <sup>*</sup>Equal co-mentorship
+            </p>
+            <div class="quick-links">
+                <a href="https://xhguo7.github.io/FloWright/" class="link-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Homepage
+                </a>
+                <a href="https://arxiv.org/abs/2610.01026" class="link-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    arXiv
+                </a>
+                <a href="https://github.com/xhguo7/FloWright" class="link-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    </svg>
+                    Code
+                </a>
+                <a href="https://huggingface.co/papers/2610.01026" class="link-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    HuggingFace
+                </a>
+            </div>
+        </header>
+
+        <section id="abstract">
+            <h2>Abstract</h2>
+            <p class="abstract">
+                Tackling complex real-world tasks can exceed the capabilities of a single large language model (LLM),
+                motivating the use of multi-agent workflows that coordinate specialized agents to work together on
+                these tasks. Recent methods train LLMs to construct better workflows from execution outcomes, but they
+                optimize only the workflow generator, while the other agents that build or execute each workflow
+                remain fixed even though every outcome depends on all of them. However, extending training beyond the
+                generator is challenging: the agents are coupled, and a workflow's outcome is a single sparse score
+                that cannot tell which agent causes a failure. We propose <strong>FloWright</strong>, which leverages
+                the workflow as a <em>harness</em> to optimize workflows. By introducing a hierarchical,
+                structure-aware reward paradigm, FloWright enables one role to self-evolve and two or more roles to
+                co-evolve, with no additional models, labels, or executions. Considering the limitation that workflows
+                are commonly trained and evaluated on data that a single agent can already handle, we further propose
+                <strong>DataWright</strong>, an adaptive data hardening approach that converts existing datasets into
+                workflow-level tasks with increased difficulty. Across document, slide, chart, code, math, and finance
+                tasks, small open models trained with FloWright achieve improved performance by up to
+                <strong>&uarr;7.41%</strong>, with co-evolving (<strong>&uarr;5.03%</strong>) more roles gaining more
+                than optimizing one of them alone (<strong>&uarr;2.83%</strong>).
+            </p>
+
+            <figure>
+                <img src="./assets/fig1_framework.png" alt="Upstream-downstream framework">
+                <figcaption><strong>Upstream-Downstream Framework.</strong>
+                Upstream, workflow generation can take on different structures, from the Generator with its own
+                Inventor skill to the Generator working with other agents, drawing on pools of different granularity.
+                Downstream, workflows take different structures and topologies to better solve the task.</figcaption>
+            </figure>
+
+            <div class="stats">
+                <div class="stat-item"><span class="stat-number">&uarr;7.41%</span><span class="stat-label">best gain over untrained workflows</span></div>
+                <div class="stat-item"><span class="stat-number">&uarr;5.03%</span><span class="stat-label">multi-agent co-evolution, overall</span></div>
+                <div class="stat-item"><span class="stat-number">&uarr;2.83%</span><span class="stat-label">single-role self-evolution, overall</span></div>
+                <div class="stat-item"><span class="stat-number">44</span><span class="stat-label">evaluation arms over 12 datasets</span></div>
+            </div>
+        </section>
+
+        <section id="motivation">
+            <h2>What Limits Workflow Optimization?</h2>
+            <p class="abstract">
+                Recent work trains LLMs to construct better workflows from the outcomes of executing them. Yet these
+                methods typically optimize a single workflow generator. Because the outcome of a workflow depends
+                jointly on every agent that builds or executes it, training only the generator leaves the other agents
+                shaping every outcome without ever learning from it.
+            </p>
+
+            <div class="motivation-grid">
+                <div class="motivation-card">
+                    <h4>Only the Generator Learns</h4>
+                    <p>The agents that execute a workflow, and any others that help build it, remain fixed, which
+                    limits how much the workflow as a whole can improve.</p>
+                </div>
+                <div class="motivation-card">
+                    <h4>Agents Are Coupled</h4>
+                    <p>One agent's output becomes another's input. Training agents separately ignores how each
+                    agent's behavior shapes what the others learn.</p>
+                </div>
+                <div class="motivation-card">
+                    <h4>The Outcome Is One Sparse Score</h4>
+                    <p>A single score for the whole workflow cannot tell which agent causes a failure, and existing
+                    attribution adds costly models, labels, or executions.</p>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h3>Preliminary: Existing Data Does Not Need a Workflow</h3>
+                <div class="scrollable-table"><table>
+<thead><tr>
+<th>Dataset</th><th>Multi-agent workflow (%)</th><th>Single agent (%)</th><th>&Delta; (%)</th></tr></thead>
+<tbody>
+<tr class="row-baseline"><td>MMLongBench-Doc (original)</td><td class="num">40.50</td><td class="num">48.00</td><td class="num"><span class="down">&darr;7.50</span></td></tr>
+<tr class="row-baseline"><td>DocFinQA (original)</td><td class="num">33.00</td><td class="num">38.00</td><td class="num"><span class="down">&darr;5.00</span></td></tr>
+<tr class="row-ft"><td><strong>MMLongBench-Doc (DataWright-hardened)</strong></td><td class="num"><strong>51.61</strong></td><td class="num">12.33</td><td class="num"><span class="up">&uarr;39.28</span></td></tr>
+</tbody>
+</table></div>
+                <figcaption>A multi-agent workflow against a single agent on the Qwen3-VL-8B backbone, given the same
+                compute budget.</figcaption>
+            </div>
+
+            <figure>
+                <img src="./assets/fig9_prelim.png" alt="Preliminary study on existing benchmarks">
+                <figcaption><strong>Preliminary Study.</strong>
+                Among the 121 datasets that 20 workflow generation methods evaluate on, 85 are single-question math,
+                short-answer QA, or function-level coding, each of which a single competent agent can answer in one
+                pass. Workflows underperform the single agent on the original datasets, yet gain
+                <strong>&uarr;39.28</strong> on the DataWright-hardened dataset.</figcaption>
+            </figure>
+        </section>
+
+        <section id="flowright">
+            <h2>FloWright: Learning to Wright Workflows</h2>
+            <p class="abstract">
+                A complex task <em>x</em> is solved by a <strong>workflow</strong>, a directed graph
+                <em>G</em>&nbsp;=&nbsp;(<em>V</em>,&nbsp;<em>E</em>) whose nodes are agents, tools, or skills, and whose
+                edges carry the data and control flow among them. Upstream, the <strong>Generator</strong>
+                <em>&pi;<sub>g</sub></em> produces <em>G</em>. Downstream, the <strong>harness</strong> <em>H</em>
+                executes and grades it:
+            </p>
+            <span class="eq">x &rarr;<sub>&pi;<sub>g</sub></sub> G &rarr;<sub>H</sub> (y, h(G, x)), &nbsp;&nbsp; h(G, x) &isin; [0, 1]</span>
+            <p class="abstract">
+                The signal <em>h</em> serves three purposes: the evaluation metric, the training signal, and the
+                test-time objective.
+            </p>
+
+            <figure>
+                <img src="./assets/fig2_flowright.png" alt="FloWright for reinforcement learning via self-evolving harness">
+                <figcaption><strong>FloWright for Reinforcement Learning via Self-Evolving Harness.</strong>
+                Workflow generation and execution form a coupled on-policy learning loop: upstream proposes workflows,
+                downstream executes them, and the verifiable harness turns execution outcomes into learning signals
+                for the policies being optimized.</figcaption>
+            </figure>
+
+            <h3>Hierarchical Structure-Aware Reward Ladder</h3>
+            <p>The harness does not reduce an execution to a single pass-or-fail outcome. It stages the signal into a
+            ladder of auto-verified terms, so the policy sees a meaningful gradient even when the workflow falls
+            short. Every optimizable role <em>&rho;</em> instantiates its own reward from the same shared harness:</p>
+            <span class="eq">h<sup>&rho;</sup> = w<sub>f</sub> f + w<sub>v</sub> v<sup>&rho;</sup> + w<sub>e</sub> e + w<sub>a</sub> a + w<sub>c</sub> c<sup>&rho;</sup></span>
+
+            <div class="stage-grid">
+                <div class="stage-card stage-i">
+                    <h4>Format (f)</h4>
+                    <p>Whether the role's own output parses. An output that cannot be read leaves nothing to
+                    execute.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Validity (v<sup>&rho;</sup>)</h4>
+                    <p>Whether the role's contribution is valid, such as a workflow that is a well-formed graph
+                    over the pool. Deterministic, never a learned judge.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Execution (e)</h4>
+                    <p>Whether the workflow executes to a final answer.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Answer (a)</h4>
+                    <p>How correct that answer is, shared by every role.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Credit (c<sup>&rho;</sup>)</h4>
+                    <p>The fraction of the role's own nodes that root-cause a failure, read from the execution trace
+                    the harness already records.</p>
+                    <span class="eq">c<sup>&rho;</sup> = &minus; |F<sup>&rho;</sup>| / |V<sup>&rho;</sup>| &isin; [&minus;1, 0]</span>
+                </div>
+            </div>
+
+            <div class="insights-box">
+                <ul>
+                    <li><strong>From the role's own output to the task outcome:</strong> the four staged terms measure how far a workflow reaches.</li>
+                    <li><strong>From local to global:</strong> the credit term charges each role only for the failures of the nodes it authors, with no additional execution and no new signal.</li>
+                    <li><strong>Only genuine root causes are charged:</strong> a cascaded failure propagates to its root along the workflow's edges, and infrastructure faults are excluded.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="design">
+            <h2>Wire the Workflow: Topology and Pools</h2>
+            <p class="abstract">
+                Upstream construction turns on three choices: the topology of the workflow, and the granularity and
+                dynamics of the pool it draws from. A single workflow can express sequential, parallel, branching, and
+                iterative structure as the task demands.
+            </p>
+
+            <h3>Four Topologies, One Executable Graph</h3>
+            <p>The four topologies differ only in where the control flow is written down. Each is converted into the
+            same directed graph, so execution, credit, and evaluation never observe which topology produced it.</p>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="showTab(event, 'topology', 'schema')">Schema</button>
+                <button class="tab-btn" onclick="showTab(event, 'topology', 'graph')">Graph</button>
+                <button class="tab-btn" onclick="showTab(event, 'topology', 'state')">State Machine</button>
+                <button class="tab-btn" onclick="showTab(event, 'topology', 'code')">Code</button>
+            </div>
+
+            <div id="topology-schema" class="tab-panel" data-tab-group="topology">
+                <h3>Schema: Steps With Dependencies</h3>
+                <p>Steps declare their dependencies, and one <code>control_flow</code> block states the control flow.</p>
+                <div class="code-box"><pre>{"steps": [{"step_id": "step_1", "agent": "Visual Analyst",
+            "instruction": "Analyze the images for Question 1 [...] return only the letter",
+            "inputs": {"image_1.jpg": [...]}, "outputs": ["Answer_Q1"], "depends_on": []},
+           [...]],
+ "control_flow": {"type": "sequential", "loop_steps": [], "max_iterations": null}}</pre></div>
+            </div>
+
+            <div id="topology-graph" class="tab-panel hidden" data-tab-group="topology">
+                <h3>Graph: Typed Edges</h3>
+                <p>Agent nodes are connected by typed edges that carry the control flow.</p>
+                <div class="code-box"><pre>{"agents": [{"agent_id": "visual_analyst_agent", "agent": "visual_analyst_agent",
+             "instruction": "Analyze the images to answer three questions [...]",
+             "inputs": [...], "outputs": ["Answer_Q1", "Answer_Q2", "Answer_Q3"]}],
+ "flows": [{"source": "visual_analyst_agent", "target": "visual_analyst_agent",
+            "type": "sequence", "condition": "true", "max_iterations": 1}]}</pre></div>
+            </div>
+
+            <div id="topology-state" class="tab-panel hidden" data-tab-group="topology">
+                <h3>State Machine: Conditioned Transitions</h3>
+                <p>States are linked by transitions that carry conditions and bounds.</p>
+                <div class="code-box"><pre>{"states": [{"state_id": "Q1_Analysis", "agent": "VisualDataAnalyzer",
+             "action": "Analyze [...] select the correct option letter",
+             "outputs": ["Answer for Question 1"]}, [...]],
+ "transitions": [{"from_state": "Q1_Analysis", "to_state": "Q2_Analysis",
+                  "condition": "answer is a single letter", "max_iterations": 3}, [...]],
+ "start_state": "Q1_Analysis", "terminal_states": ["Final_Aggregation"]}</pre></div>
+            </div>
+
+            <div id="topology-code" class="tab-panel hidden" data-tab-group="topology">
+                <h3>Code: Typed Blocks</h3>
+                <p>Blocks carry the control flow in their <code>type</code>.</p>
+                <div class="code-box"><pre>{"program": {"language": "workflow_pseudocode",
+             "blocks": [{"block_id": "block_1", "type": "step", "agent": "visual_analyst",
+                         "instruction": "Analyze the chart and the crop [...] return the option letter",
+                         "outputs": ["Answer_Q1"], "depends_on": [], "condition": null,
+                         "max_iterations": 3}, [...]]}}</pre></div>
+            </div>
+
+            <h3>Pool Granularity and Dynamics</h3>
+            <div class="stage-grid">
+                <div class="stage-card stage-i">
+                    <h4>Modular Pool</h4>
+                    <p>Agents, tools, and skills stay separate units, enabling flexible selection and composition.</p>
+                    <span class="eq">&Omega; = &Omega;<sub>agent</sub> &cup; &Omega;<sub>tool</sub> &cup; &Omega;<sub>skill</sub></span>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Capsule Pool</h4>
+                    <p>Each agent is bundled with the tools and skills it needs into a self-contained capsule.</p>
+                    <span class="eq">&Omega; = &Omega;<sub>capsule</sub></span>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Dynamic Pool</h4>
+                    <p>When a task calls for a capability the pool does not contain, the Generator's Inventor skill
+                    expands the pool with the missing tool, skill, or agent. A grown pool also carries components
+                    distilled from past experiences.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="evolution">
+            <h2>One Harness, Four Evolution Modes</h2>
+            <p class="abstract">
+                The reward paradigm serves every role from one shared harness, enabling one role to self-evolve or
+                several to co-evolve. When several roles train inside one harness, each role's behavior shapes what
+                the others encounter: the coupling is a <em>mutual curriculum</em>.
+            </p>
+
+            <div class="stage-grid">
+                <div class="stage-card stage-i">
+                    <h4>(a) Single-Role Self-Evolution</h4>
+                    <p>One role optimizes its role-specific reward inside the harness as it runs, so it evolves in the
+                    same flow that will use it.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>(b) Agent-Skill Co-Evolution</h4>
+                    <p>An agent co-evolves with its own skill, such as the Generator with its Inventor skill.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>(c) Upstream-Downstream Co-Evolution</h4>
+                    <p>An upstream agent that builds the workflow is coupled with a downstream agent that executes
+                    it.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>(d) Multi-Agent Co-Evolution</h4>
+                    <p>Any two or more agents co-train, each learning against the latest evolved policies of the
+                    others.</p>
+                </div>
+            </div>
+
+            <h3>Train-Time Reinforcement, Test-Time Distillation</h3>
+            <div class="stage-grid">
+                <div class="stage-card stage-i">
+                    <h4>Train Time: Maximizing the Signal</h4>
+                    <p>A role's policy is optimized to maximize its expected signal over tasks. FloWright contributes
+                    a training paradigm rather than an optimizer, so GRPO, DAPO, and CISPO all instantiate it.</p>
+                    <span class="eq">J(&pi;<sub>&rho;</sub>) = E [ h<sup>&rho;</sup>(G, x) ]</span>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Test Time: Meta Distillation</h4>
+                    <p>With no weights changing, the harness distills a reusable prior, internally from its own
+                    experiences or externally from a stronger teacher, and distills successful experiences into
+                    few-shot cases.</p>
+                    <span class="eq">P<sup>*</sup> = arg max<sub>P</sub> E [ h(G, x | P) ]</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="datawright">
+            <h2>DataWright: Workflow-Level Data Hardening</h2>
+            <p class="abstract">
+                Datasets that a single agent can already handle can neither reveal nor optimize what a workflow adds
+                beyond it. DataWright converts existing datasets into workflow-level tasks by rule, with no model in
+                the loop. Hardening changes how hard a task is, not how its answers are graded: every sub-question
+                keeps the metric of its own answer type, and a task's score is the mean over its sub-questions.
+            </p>
+
+            <div class="stats">
+                <div class="stat-item"><span class="stat-number">12</span><span class="stat-label">datasets</span></div>
+                <div class="stat-item"><span class="stat-number">7</span><span class="stat-label">domains</span></div>
+                <div class="stat-item"><span class="stat-number">3</span><span class="stat-label">hardening strategies</span></div>
+                <div class="stat-item"><span class="stat-number">44</span><span class="stat-label">evaluation arms</span></div>
+            </div>
+
+            <h3>Three Hardening Strategies</h3>
+            <div class="stage-grid">
+                <div class="stage-card stage-i">
+                    <h4>Shared: Decomposition</h4>
+                    <p>Bundles <em>&ell;</em> questions about the same input into one task, which splits into
+                    sub-questions that can be assigned and answered separately.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Paired: Routing</h4>
+                    <p>Bundles <em>&ell;</em> questions, each with its own distinct input, into one task. Each
+                    sub-question is matched to the input that answers it.</p>
+                </div>
+                <div class="stage-card stage-i">
+                    <h4>Decoy: Localization</h4>
+                    <p>Keeps one question and places its input among <em>&ell;</em>&nbsp;&minus;&nbsp;1 decoy inputs
+                    drawn from the same dataset.</p>
+                </div>
+            </div>
+
+            <div class="insights-box">
+                <ul>
+                    <li><strong>In-distribution (4 arms):</strong> the four training datasets at the <em>paired</em> strategy and <em>&ell;</em>&nbsp;=&nbsp;3.</li>
+                    <li><strong>Out-of-distribution (13 arms):</strong> the same four datasets under a strategy, a level, or both that training never sees.</li>
+                    <li><strong>Out-of-domain (27 arms):</strong> eight datasets FloWright never trains on.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="effectiveness">
+            <h2>Effectiveness: Evolving Roles at Train and Test Time</h2>
+            <p class="abstract">
+                We train Qwen3.5-4B and Qwen3.5-9B on the <em>paired</em> strategy at <em>&ell;</em>&nbsp;=&nbsp;3 of
+                four datasets, and evaluate on held-out test sets across in-distribution, out-of-distribution, and
+                out-of-domain arms.
+            </p>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="showTab(event, 'eff', 'train')">Train-Time</button>
+                <button class="tab-btn" onclick="showTab(event, 'eff', 'arm')">Per-Arm</button>
+                <button class="tab-btn" onclick="showTab(event, 'eff', 'test')">Test-Time</button>
+            </div>
+
+            <div id="eff-train" class="tab-panel" data-tab-group="eff">
+                <p>Mean accuracy (%) over the hardening strategies and levels each dataset supports. 4B and 9B
+                abbreviate Qwen3.5-4B and Qwen3.5-9B, and (a) to (d) denote the four evolution modes.</p>
+                <div class="table-container">
+                    <div class="scrollable-table" id="tbl-main"><table class="wide">
+<thead>
+<tr><th rowspan="2" class="sticky-col">Method</th><th>In-Dist.</th><th colspan="3">Out-of-Distribution</th><th colspan="3">Out-of-Domain</th><th rowspan="2">Overall</th></tr>
+<tr><th>&ell;=3</th><th>&ell;=3</th><th>&ell;=5</th><th>Mean</th><th>&ell;=3</th><th>&ell;=5</th><th>Mean</th></tr>
+</thead>
+<tbody>
+<tr class="group-row"><td colspan="9">Baseline: Single Agent (without tool or skill)</td></tr>
+<tr><td class="sticky-col">Qwen3.5-4B</td><td class="num">10.87</td><td class="num">11.39</td><td class="num">6.12</td><td class="num">8.15</td><td class="num">7.89</td><td class="num">5.12</td><td class="num">6.56</td><td class="num">7.42</td></tr>
+<tr><td class="sticky-col">Qwen3.5-9B</td><td class="num">16.17</td><td class="num">14.45</td><td class="num">9.35</td><td class="num">11.31</td><td class="num">13.55</td><td class="num">9.53</td><td class="num">11.61</td><td class="num">11.94</td></tr>
+<tr class="group-row"><td colspan="9">Baseline: Single Agent (with tools and skills)</td></tr>
+<tr class="row-baseline"><td class="sticky-col">Qwen3.5-4B</td><td class="num">21.13</td><td class="num">20.75</td><td class="num">15.12</td><td class="num">17.28</td><td class="num">25.02</td><td class="num">19.35</td><td class="num">22.29</td><td class="num">20.70</td></tr>
+<tr class="row-baseline"><td class="sticky-col">Qwen3.5-9B</td><td class="num">28.53</td><td class="num">31.14</td><td class="num">23.87</td><td class="num">26.67</td><td class="num">35.79</td><td class="num">30.08</td><td class="num">33.04</td><td class="num">30.75</td></tr>
+<tr class="group-row"><td colspan="9">Baseline: FloWright (untrained)</td></tr>
+<tr class="row-nft"><td class="sticky-col">Qwen3.5-4B</td><td class="num">31.91</td><td class="num">34.91</td><td class="num">25.70</td><td class="num">29.24</td><td class="num">36.17</td><td class="num">30.58</td><td class="num">33.48</td><td class="num">32.09</td></tr>
+<tr class="row-nft"><td class="sticky-col">Qwen3.5-9B</td><td class="num">50.14</td><td class="num">44.47</td><td class="num">40.48</td><td class="num">42.02</td><td class="num">52.44</td><td class="num">46.84</td><td class="num">49.74</td><td class="num">47.50</td></tr>
+<tr class="group-row"><td colspan="9">FloWright: Train-Time Optimization</td></tr>
+<tr class="row-ft"><td class="sticky-col">+ (a) 4B</td><td class="num">35.16</td><td class="num">37.78</td><td class="num">29.15</td><td class="num">32.47</td><td class="num">38.38</td><td class="num">33.58</td><td class="num">36.07</td><td class="num">34.92</td></tr>
+<tr class="row-ft"><td class="sticky-col">+ (a) 9B</td><td class="num">54.51</td><td class="num">48.28</td><td class="num">43.66</td><td class="num">45.44</td><td class="num">56.99</td><td class="num">50.36</td><td class="num">53.80</td><td class="num">51.39</td></tr>
+<tr class="row-ft"><td class="sticky-col">+ (b) 4B</td><td class="num"><strong>39.32</strong></td><td class="num">39.50</td><td class="num">30.94</td><td class="num">34.23</td><td class="num">39.27</td><td class="num">33.74</td><td class="num">36.61</td><td class="num">36.15</td></tr>
+<tr class="row-ft"><td class="sticky-col">+ (c) 4B</td><td class="num">36.23</td><td class="num">38.75</td><td class="num">29.88</td><td class="num">33.29</td><td class="num">38.89</td><td class="num">32.65</td><td class="num">35.89</td><td class="num">35.15</td></tr>
+<tr class="row-ft"><td class="sticky-col"><strong>+ (d) 4B</strong></td><td class="num">39.23</td><td class="num"><strong>40.71</strong></td><td class="num"><strong>31.91</strong></td><td class="num"><strong>35.29</strong></td><td class="num"><strong>40.48</strong></td><td class="num"><strong>34.67</strong></td><td class="num"><strong>37.68</strong></td><td class="num"><strong>37.12</strong></td></tr>
+</tbody>
+</table></div>
+                    <figcaption>(Bold marks the best Qwen3.5-4B result in each column)</figcaption>
+                </div>
+                <div class="insights-box">
+                    <ul>
+                        <li><strong>Workflows beat a single agent:</strong> untrained FloWright improves over the single-agent baselines by at least &uarr;11.39% overall.</li>
+                        <li><strong>Every evolution mode helps in every regime:</strong> at matched model size, each mode exceeds its untrained counterpart, by up to &uarr;7.41%.</li>
+                        <li><strong>Co-evolving more roles gains more:</strong> multi-agent co-evolution leads 7 of 8 columns and gains &uarr;5.03% overall, ahead of &uarr;4.06% (agent-skill), &uarr;3.06% (upstream-downstream), and &uarr;2.83% (single role).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="eff-arm" class="tab-panel hidden" data-tab-group="eff">
+                <div class="figure-split">
+                    <div class="side-text">
+                        <h4>Gains hold on every dataset, strategy, and level</h4>
+                        <p>Under multi-agent co-evolution, all 12 datasets gain over the untrained workflow, by up to
+                        <strong>&uarr;7.34%</strong> on LongDocURL and <strong>&uarr;5.13%</strong> on ChartCoder.</p>
+                        <p>The gain grows as the strategy demands more of the workflow:
+                        <strong>&uarr;3.57%</strong> on shared, <strong>&uarr;4.11%</strong> on paired, and
+                        <strong>&uarr;4.68%</strong> on decoy.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig12_per_arm.png" alt="Per-arm results behind the mean scores">
+                        <figcaption><strong>Per-Arm Results Behind the Mean Scores.</strong>
+                        Accuracy (%) of each method on the 44 evaluation arms, grouped into the three regimes.
+                        S/P/D denote the shared, paired, and decoy strategies, and 3/5 the level.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="eff-test" class="tab-panel hidden" data-tab-group="eff">
+                <div class="figure-split">
+                    <div class="side-text">
+                        <h4>A reusable prior helps with weights fixed</h4>
+                        <p>Distilling the prior from the system's own experiences gains <strong>&uarr;0.93%</strong>
+                        overall, and from a stronger teacher <strong>&uarr;1.10%</strong>.</p>
+                        <p>Meta distillation gives the largest test-time gain, up to <strong>&uarr;2.58%</strong> at
+                        five shots.</p>
+                        <p>Composed with train-time evolution, it reaches <strong>&uarr;3.21%</strong> overall.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig3_test_time.png" alt="Test-time optimization with a reusable prior">
+                        <figcaption><strong>Test-Time Optimization with Reusable Prior.</strong>
+                        Internal and external distillation draw the prior from the system's own experiences and from
+                        a stronger teacher. Meta distillation additionally distills successful experiences into
+                        few-shot cases.</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section id="generalizability">
+            <h2>Generalizability: Algorithms, Rewards, Topologies, and Pools</h2>
+            <p class="abstract">
+                The gains hold across RL algorithms, reward terms, workflow topologies, pool granularities, and pool
+                dynamics.
+            </p>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="showTab(event, 'gen', 'algorithm')">RL Algorithm</button>
+                <button class="tab-btn" onclick="showTab(event, 'gen', 'reward')">Reward Ladder</button>
+                <button class="tab-btn" onclick="showTab(event, 'gen', 'topology')">Topology</button>
+                <button class="tab-btn" onclick="showTab(event, 'gen', 'granularity')">Pool Granularity</button>
+                <button class="tab-btn" onclick="showTab(event, 'gen', 'dynamics')">Pool Dynamics</button>
+            </div>
+
+            <div id="gen-algorithm" class="tab-panel" data-tab-group="gen">
+                <div class="figure-split half">
+                    <div class="side-text">
+                        <h4>The signal generalizes across RL algorithms</h4>
+                        <p>Optimizing the Generator outperforms the untrained baseline under every algorithm:
+                        <strong>&uarr;2.83%</strong> for GRPO, <strong>&uarr;3.23%</strong> for CISPO, and
+                        <strong>&uarr;3.84%</strong> for DAPO overall.</p>
+                        <p>DAPO leads in every regime, and its margin widens out-of-domain.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig4_rl_algorithms.png" alt="Generalizability across RL algorithms">
+                        <figcaption><strong>Algorithm Generalizability.</strong>
+                        Each algorithm optimizes the Generator on Qwen3.5-4B.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="gen-reward" class="tab-panel hidden" data-tab-group="gen">
+                <div class="figure-split half">
+                    <div class="side-text">
+                        <h4>Every layer of the ladder contributes</h4>
+                        <p>Grading format and answer alone stays close to the untrained baseline. Validity contributes
+                        the largest single increment: <strong>&uarr;2.07%</strong> under GRPO and
+                        <strong>&uarr;2.29%</strong> under DAPO.</p>
+                        <p>The structure-aware credit adds a further <strong>&uarr;0.69%</strong> and
+                        <strong>&uarr;0.75%</strong>.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig5_reward_ladder.png" alt="Reward ladder ablation">
+                        <figcaption><strong>Reward Ladder.</strong>
+                        Each layer adds one term: format and answer alone, plus validity, plus the structure-aware
+                        credit.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="gen-topology" class="tab-panel hidden" data-tab-group="gen">
+                <div class="figure-split half">
+                    <div class="side-text">
+                        <h4>Gains hold whichever topology is written</h4>
+                        <p>Optimization improves every topology: <strong>&uarr;2.83%</strong> for schema,
+                        <strong>&uarr;2.62%</strong> for state machine, <strong>&uarr;1.74%</strong> for code, and
+                        <strong>&uarr;1.25%</strong> for graph.</p>
+                        <p>Code leads both untrained (34.12%) and with an optimized Generator (35.86%).</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig6_topology.png" alt="Workflow topology ablation">
+                        <figcaption><strong>Workflow Topology.</strong>
+                        The Generator writes workflows in schema, state machine, graph, or code.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="gen-granularity" class="tab-panel hidden" data-tab-group="gen">
+                <div class="figure-split half">
+                    <div class="side-text">
+                        <h4>Capsules lead, and optimization narrows the gap</h4>
+                        <p>Bundling each agent with the tools and skills it needs gains <strong>&uarr;3.83%</strong> on
+                        Qwen3.5-4B and <strong>&uarr;3.87%</strong> on Qwen3.5-9B over a modular pool.</p>
+                        <p>Optimizing the Generator improves the modular pool by <strong>&uarr;4.50%</strong> against
+                        <strong>&uarr;2.83%</strong> for capsules.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig7_pool_granularity.png" alt="Pool granularity ablation">
+                        <figcaption><strong>Pool Granularity.</strong>
+                        Backbones compared at modular and capsule granularity. Trained 4B carries the RL-trained
+                        Generator.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="gen-dynamics" class="tab-panel hidden" data-tab-group="gen">
+                <div class="figure-split half">
+                    <div class="side-text">
+                        <h4>Growing the pool from successes adds the most</h4>
+                        <p>A pool that grows on demand gains <strong>&uarr;4.83%</strong> over a pool held fixed, the
+                        largest effect among the single design choices.</p>
+                        <p>Distilling past experiences into the pool adds a further <strong>&uarr;1.44%</strong> when
+                        only successful ones are kept, against <strong>&uarr;0.53%</strong> when failed ones are kept
+                        too.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig8_pool_dynamics.png" alt="Pool dynamics ablation">
+                        <figcaption><strong>Pool Dynamics.</strong>
+                        A static pool stays fixed, a dynamic pool expands on demand, and a grown pool also carries
+                        components distilled from past experiences.</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section id="transferability">
+            <h2>Transferability: Across Roles and Backbones</h2>
+            <p class="abstract">
+                What FloWright optimizes transfers across roles and to backbones it never trains alongside, at both
+                train and test time.
+            </p>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="showTab(event, 'tra', 'roles')">Roles</button>
+                <button class="tab-btn" onclick="showTab(event, 'tra', 'backbones')">Backbones</button>
+                <button class="tab-btn" onclick="showTab(event, 'tra', 'meta')">Meta Distillation</button>
+            </div>
+
+            <div id="tra-roles" class="tab-panel" data-tab-group="tra">
+                <div class="figure-split">
+                    <div class="side-text">
+                        <h4>Whichever role is optimized, it helps</h4>
+                        <p>Alone, the Generator gains <strong>&uarr;2.83%</strong>, the Inventor skill
+                        <strong>&uarr;0.90%</strong>, and the downstream agent <strong>&uarr;0.88%</strong>.</p>
+                        <p>Co-evolution gains more: <strong>&uarr;4.06%</strong> for Generator and skill,
+                        <strong>&uarr;3.06%</strong> for upstream and downstream, and <strong>&uarr;5.03%</strong>
+                        for multi-agent.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig14_roles.png" alt="Evolution of different roles">
+                        <figcaption><strong>Evolution of Different Roles.</strong>
+                        Every role runs Qwen3.5-4B, with the only variable as which role the harness
+                        optimizes.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="tra-backbones" class="tab-panel hidden" data-tab-group="tra">
+                <div class="figure-split">
+                    <div class="side-text">
+                        <h4>Gains transfer to other backbones</h4>
+                        <p>With the other roles on Qwen3.5-9B, an optimized 4B role exceeds the all-9B baseline of
+                        47.50%: <strong>47.67%</strong> for the Generator, <strong>47.96%</strong> for the Inventor
+                        skill, and <strong>48.50%</strong> for both.</p>
+                        <p>The downstream agent bounds what a workflow performs, however well it is built.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig13_backbones.png" alt="Roles powered by different backbones">
+                        <figcaption><strong>Roles Powered by Different Backbones.</strong>
+                        Trained Role (*) uses the RL-trained 4B role, with Qwen3.5-9B powering the other
+                        roles.</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div id="tra-meta" class="tab-panel hidden" data-tab-group="tra">
+                <div class="figure-split">
+                    <div class="side-text">
+                        <h4>The prior helps models it never trains</h4>
+                        <p>A meta-distilled prior gains <strong>&uarr;1.62%</strong> on Qwen3.5-4B,
+                        <strong>&uarr;1.53%</strong> on Qwen3.5-9B, <strong>&uarr;1.44%</strong> on GPT-5-mini, and
+                        <strong>&uarr;1.91%</strong> on GPT-5.4-mini.</p>
+                        <p>Every backbone keeps its weights fixed, so each gain comes from the prior alone.</p>
+                    </div>
+                    <figure>
+                        <img src="./assets/fig15_meta_backbones.png" alt="Meta distillation across backbones">
+                        <figcaption><strong>Meta Distillation Across Backbones.</strong>
+                        Each backbone appears as an untrained baseline, compared with the meta prior distilled at
+                        five shots.</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section id="resources">
+            <h2>Resources</h2>
+            <div class="resources-grid">
+                <a href="https://github.com/xhguo7/FloWright" class="resource-card">
+                    <h4>Code</h4><p>GitHub repository for the FloWright</p>
+                </a>
+                <a href="https://huggingface.co/papers/2610.01026" class="resource-card">
+                    <h4>Hugging Face</h4><p>Hugging Face page for FloWright</p>
+                </a>
+                <a href="https://arxiv.org/abs/2610.01026" class="resource-card">
+                    <h4>arXiv</h4><p>FloWright: It Takes Workflows to Evolve Better Workflows</p>
+                </a>
+            </div>
+        </section>
+
+        <section id="citation">
+            <h2>Citation</h2>
+            <div class="citation-box">
+                <button class="copy-btn" onclick="copyCitation()">Copy</button>
+                <pre id="citation-text">@article{guo2026flowright,
+  title   = {FloWright: It Takes Workflows to Evolve Better Workflows},
+  author  = {Guo, Xuehang and Wang, Haoyu and Chen, Haifeng and Chen, Yangyi and Wang, Zhenhailong and Wang, Qingyun},
+  journal = {arXiv preprint arXiv:2610.01026},
+  url     = {https://arxiv.org/abs/2610.01026},
+  year    = {2026}
+}</pre>
+            </div>
+        </section>
+
+        <footer>
+            <p>FloWright: It Takes Workflows to Evolve Better Workflows</p>
+        </footer>
+    </div>
+
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Back to top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="6"></line>
+            <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+    </button>
+
+    <script>
+        const progressBar = document.getElementById('scroll-progress');
+        const backToTop = document.getElementById('back-to-top');
+
+        // Roughly one screenful, so the button appears only once scrolling has begun in earnest
+        const BACK_TO_TOP_OFFSET = 600;
+
+        function updateOnScroll() {
+            const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+            const fraction = scrollable > 0 ? window.scrollY / scrollable : 0;
+            progressBar.style.transform = `scaleX(${Math.min(Math.max(fraction, 0), 1)})`;
+            backToTop.classList.toggle('visible', window.scrollY > BACK_TO_TOP_OFFSET);
+        }
+
+        let scrollQueued = false;
+        window.addEventListener('scroll', () => {
+            if (scrollQueued) return;
+            scrollQueued = true;
+            requestAnimationFrame(() => {
+                updateOnScroll();
+                scrollQueued = false;
+            });
+        }, { passive: true });
+
+        // Page height changes as figures decode, so recompute once they have loaded
+        window.addEventListener('resize', updateOnScroll, { passive: true });
+        window.addEventListener('load', updateOnScroll);
+        updateOnScroll();
+
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        function showTab(event, group, which) {
+            document.querySelectorAll(`.tab-panel[data-tab-group="${group}"]`).forEach(panel => {
+                panel.classList.toggle('hidden', panel.id !== `${group}-${which}`);
+            });
+            const bar = event && event.currentTarget ? event.currentTarget.parentElement : null;
+            if (bar) {
+                bar.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+            }
+        }
+
+        function copyCitation() {
+            const citationText = document.getElementById('citation-text').textContent;
+            navigator.clipboard.writeText(citationText).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = originalText; }, 2000);
+            });
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0, rootMargin: '0px 0px -50px 0px' });
+
+        document.querySelectorAll('section').forEach(section => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            section.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
