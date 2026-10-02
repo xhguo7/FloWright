@@ -107,21 +107,7 @@ VLLM_BASE_URL=http://localhost:8000/v1 \
 bash scripts/flowright/run_flowright.sh
 ```
 
-Settings live at the top of the script and can be overridden from the environment. `python flowright.py --help` lists every option.
-
-### **2.2 Workflow Design Space**
-
-| Variable | Values | Description |
-| :--- | :--- | :--- |
-| `FLOWRIGHT_TOPOLOGY` | `schema` \| `graph` \| `state_machine` \| `code` | Representation the Generator writes the workflow in |
-| `FLOWRIGHT_POOL_FORM` | `modular` \| `capsule` | Pool granularity |
-| `FLOWRIGHT_POOL_SCOPE` | `all` \| `basic` \| `none` | How much of the pool the Generator is shown |
-| `FLOWRIGHT_ENABLE_DYNAMIC_POOL` | `true` \| `false` | Let the Generator's Inventor skill create missing components |
-| `FLOWRIGHT_DYNAMIC_POOL_GROW` | `off` \| `success` \| `all` | Which created components are kept to grow the pool |
-| `FLOWRIGHT_ENABLE_PLANNER` | `off` \| `planner` \| `agent_aware_planner` | Add a Planner before the Generator |
-| `FLOWRIGHT_MAX_ITER_CRITIC` | integer | Critic revision rounds (`0` disables the Critic) |
-
-### **2.3 Run Inference & Evaluation**
+### **2.2 Run Inference & Evaluation**
 
 Every role takes its own engine and model, so roles can run on different backbones. For example, to run every role on an OpenAI model:
 
@@ -132,7 +118,7 @@ FLOWRIGHT_TASK_FILE=/path/to/tasks.jsonl FLOWRIGHT_POOL_SCOPE=all \
 bash scripts/flowright/run_flowright.sh
 ```
 
-### **2.4 Re-Grading Saved Workflows**
+### **2.3 Re-Grading Saved Workflows**
 
 Execute and grade the workflows of a finished run again, for example with a different downstream backbone:
 
